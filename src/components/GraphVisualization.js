@@ -9,6 +9,7 @@ const GraphVisualization = ({
   onNodeSelect 
 }) => {
   const cyRef = useRef(null);
+  const containerRef = useRef(null);
   
   // Apply styling and layout when elements change
   useEffect(() => {
@@ -186,103 +187,186 @@ const GraphVisualization = ({
   }, [selectedNode]);
   
   return (
-    <div className="graph-container">
-      <CytoscapeComponent
-        elements={elements}
-        style={{ width: '100%', height: '100%' }}
-        cy={(cy) => {
-          cyRef.current = cy;
-          
-          // Set up node click handler
-          cy.on('tap', 'node', function(evt) {
-            const node = evt.target;
-            onNodeSelect(node.id());
-          });
-          
-          cy.on('tap', function(evt) {
-            if (evt.target === cy) {
-              // Clicked on background
-              onNodeSelect(null);
+    <div className="graph-container-wrapper" ref={containerRef}>
+      <div className="graph-container">
+        <CytoscapeComponent
+          elements={elements}
+          style={{ width: '100%', height: '100%' }}
+          cy={(cy) => {
+            cyRef.current = cy;
+            
+            // Revert to simpler zoom/pan configuration
+            cy.userZoomingEnabled(true); // Enable built-in zoom
+            cy.userPanningEnabled(true);  // Enable built-in panning
+            cy.zoomingEnabled(true);
+            cy.boxSelectionEnabled(false);
+            
+            // Configure reasonable zoom limits
+            cy.minZoom(0.1);
+            cy.maxZoom(3.0);
+            
+            // Reset viewport on double click
+            cy.on('dbltap', event => {
+              if (event.target === cy) {
+                cy.animate({
+                  fit: {
+                    eles: cy.elements(),
+                    padding: 50
+                  },
+                  duration: 500,
+                  easing: 'ease-in-out'
+                });
+              }
+            });
+            
+            // Set up node click handler
+            cy.on('tap', 'node', function(evt) {
+              const node = evt.target;
+              onNodeSelect(node.id());
+            });
+            
+            cy.on('tap', function(evt) {
+              if (evt.target === cy) {
+                // Clicked on background
+                onNodeSelect(null);
+              }
+            });
+          }}
+          stylesheet={[
+            {
+              selector: 'node',
+              style: {
+                'background-color': '#666',
+                'label': 'data(id)',
+                'color': '#fff',
+                'text-outline-color': '#222',
+                'text-outline-width': 2,
+                'font-size': 14
+              }
+            },
+            {
+              selector: 'edge',
+              style: {
+                // Enhanced weight visualization with wider range and min width
+                'width': 'mapData(weight, 1, 99, 2, 12)',
+                'line-color': 'mapData(weight, 1, 99, #555555, #eeeeee)',
+                'curve-style': 'bezier',
+                'opacity': 0.8,
+                'label': 'data(weight)',  // Show weight as label
+                'font-size': 10,
+                'color': '#ffffff',
+                'text-outline-width': 1,
+                'text-outline-color': '#000000',
+                'text-background-opacity': 0.5,
+                'text-background-color': '#333333',
+                'text-background-padding': 2
+              }
+            },
+            // Style for selected node
+            {
+              selector: '.selected',
+              style: {
+                'background-color': '#f8c291',
+                'border-width': 3,
+                'border-color': '#e55039',
+                'text-outline-color': '#444',
+                'color': '#fff',
+                'z-index': 10,
+                'font-weight': 'bold',
+                'font-size': 16
+              }
+            },
+            // First-degree connections (direct)
+            {
+              selector: '.connected-1',
+              style: {
+                'background-color': '#78e08f',
+                'line-color': '#78e08f',
+                'opacity': 1,
+                'z-index': 9,
+                'font-size': 14
+              }
+            },
+            // Second-degree connections
+            {
+              selector: '.connected-2',
+              style: {
+                'background-color': '#38ada9',
+                'line-color': '#38ada9',
+                'opacity': 0.7,
+                'z-index': 8
+              }
+            },
+            // Third-degree connections
+            {
+              selector: '.connected-3',
+              style: {
+                'background-color': '#3c6382',
+                'line-color': '#3c6382',
+                'opacity': 0.4,
+                'z-index': 7
+              }
             }
-          });
-        }}
-        stylesheet={[
-          {
-            selector: 'node',
-            style: {
-              'background-color': '#666',
-              'label': 'data(id)',
-              'color': '#fff',
-              'text-outline-color': '#222',
-              'text-outline-width': 2,
-              'font-size': 14
+          ]}
+          // Use default zoom settings that were working initially
+          wheelSensitivity={0.3}
+          panningEnabled={true}
+          zoomingEnabled={true}
+          userZoomingEnabled={true}
+          userPanningEnabled={true}
+          boxSelectionEnabled={false}
+          autoungrabify={false}
+          autounselectify={false}
+        />
+      </div>
+      
+      <div className="zoom-controls">
+        <button 
+          onClick={() => {
+            if (cyRef.current) {
+              try {
+                const cy = cyRef.current;
+                cy.zoom(cy.zoom() * 1.2);
+              } catch (error) {
+                console.warn("Error zooming in:", error);
+              }
             }
-          },
-          {
-            selector: 'edge',
-            style: {
-              // Enhanced weight visualization with wider range and min width
-              'width': 'mapData(weight, 1, 99, 2, 12)',
-              'line-color': 'mapData(weight, 1, 99, #555555, #eeeeee)',
-              'curve-style': 'bezier',
-              'opacity': 0.8,
-              'label': 'data(weight)',  // Show weight as label
-              'font-size': 10,
-              'color': '#ffffff',
-              'text-outline-width': 1,
-              'text-outline-color': '#000000',
-              'text-background-opacity': 0.5,
-              'text-background-color': '#333333',
-              'text-background-padding': 2
+          }}
+          className="zoom-button"
+        >
+          +
+        </button>
+        <button 
+          onClick={() => {
+            if (cyRef.current) {
+              try {
+                const cy = cyRef.current;
+                cy.zoom(cy.zoom() * 0.8);
+              } catch (error) {
+                console.warn("Error zooming out:", error);
+              }
             }
-          },
-          // Style for selected node
-          {
-            selector: '.selected',
-            style: {
-              'background-color': '#f8c291',
-              'border-width': 3,
-              'border-color': '#e55039',
-              'text-outline-color': '#444',
-              'color': '#fff',
-              'z-index': 10,
-              'font-weight': 'bold',
-              'font-size': 16
+          }}
+          className="zoom-button"
+        >
+          -
+        </button>
+        <button 
+          onClick={() => {
+            if (cyRef.current) {
+              try {
+                const cy = cyRef.current;
+                cy.fit(undefined, 50);
+              } catch (error) {
+                console.warn("Error resetting view:", error);
+              }
             }
-          },
-          // First-degree connections (direct)
-          {
-            selector: '.connected-1',
-            style: {
-              'background-color': '#78e08f',
-              'line-color': '#78e08f',
-              'opacity': 1,
-              'z-index': 9,
-              'font-size': 14
-            }
-          },
-          // Second-degree connections
-          {
-            selector: '.connected-2',
-            style: {
-              'background-color': '#38ada9',
-              'line-color': '#38ada9',
-              'opacity': 0.7,
-              'z-index': 8
-            }
-          },
-          // Third-degree connections
-          {
-            selector: '.connected-3',
-            style: {
-              'background-color': '#3c6382',
-              'line-color': '#3c6382',
-              'opacity': 0.4,
-              'z-index': 7
-            }
-          }
-        ]}
-      />
+          }}
+          className="zoom-button"
+        >
+          Reset
+        </button>
+      </div>
     </div>
   );
 };

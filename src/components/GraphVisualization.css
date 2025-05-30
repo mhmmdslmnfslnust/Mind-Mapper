@@ -1,11 +1,48 @@
-.graph-container {
+.graph-container-wrapper {
+  position: relative;
   width: 100%;
   height: 70vh;
   border: 1px solid #333;
   border-radius: 4px;
-  overflow: hidden;
   margin: 10px 0;
   background-color: #1e1e1e;
+}
+
+.graph-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Zoom control buttons */
+.zoom-controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 10;
+}
+
+.zoom-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(40, 40, 40, 0.7);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.zoom-button:hover {
+  background-color: rgba(60, 60, 60, 0.8);
 }
 
 /* Add style for weight indicators */
