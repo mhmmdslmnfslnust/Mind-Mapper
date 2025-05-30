@@ -68,6 +68,11 @@ Example:
 
 ```
 mind-mapper/
+├── public/                 # Static files
+│   ├── index.html          # Main HTML template
+│   ├── favicon.ico         # Browser icon
+│   ├── manifest.json       # Web app manifest
+│   └── robots.txt
 ├── src/
 │   ├── components/          # React components
 │   │   ├── GraphVisualization.js
@@ -117,9 +122,9 @@ Creates two nodes "toxic shame" and "addictions" with a strong connection (weigh
 - Multiple maps in projects
 - Hierarchical node relationships
 
-<!-- ## License
+## License
 
-MIT License - See LICENSE file for details -->
+MIT License - See LICENSE file for details
 
 ## Contributing
 
