@@ -53,11 +53,12 @@ const toCytoscapeFormat = (parsedData) => {
     });
   });
   
-  // Add edges
+  // Add edges with unique IDs based on both nodes and index
   parsedData.edges.forEach((edge, index) => {
     elements.push({
       data: {
-        id: `edge-${index}`,
+        // Create truly unique edge ID using both node names and index
+        id: `edge-${edge.from}-${edge.to}-${index}`,
         source: edge.from,
         target: edge.to,
         weight: edge.weight
