@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
+import { calculateNodeImportance, getNormalizedWeights } from '../utils/layoutUtils';
 import './GraphVisualization.css';
 
 const GraphVisualization = ({ 
@@ -17,25 +18,85 @@ const GraphVisualization = ({
       // Reset selection
       cy.elements().removeClass('selected connected-1 connected-2 connected-3');
       
-      // Apply layout
-      cy.layout({
-        name: 'cose', // force-directed layout
-        idealEdgeLength: 100,
-        nodeOverlap: 20,
-        refresh: 20,
-        fit: true,
-        padding: 30,
-        randomize: false,
-        componentSpacing: 100,
-        nodeRepulsion: 400000,
-        edgeElasticity: 100,
-        nestingFactor: 5,
-        gravity: 80,
-        numIter: 1000,
-        initialTemp: 200,
-        coolingFactor: 0.95,
-        minTemp: 1.0
-      }).run();
+      // Apply smart layout only if we have nodes
+      if (cy.nodes().length > 0) {
+        // Calculate importance for each node
+        const importanceScores = calculateNodeImportance(cy);
+        const normalizedWeights = getNormalizedWeights(importanceScores);
+        
+        // Apply layout with smart positioning
+        cy.layout({
+          name: 'cose',
+          // Core layout parameters
+          idealEdgeLength: edge => {
+            // Shorter distances for stronger connections
+            return 150 - (edge.data('weight') * 1.2);
+          },
+          nodeOverlap: 25,
+          refresh: 20,
+          fit: true,
+          padding: 40,
+          randomize: false,
+          
+          // Gravity effect - central force pulling nodes inward
+          gravity: 80,
+          gravityRangeCompound: 1.2,
+          gravityCompound: 1.0,
+          
+          // Forces controlling node positioning
+          nodeRepulsion: node => {
+            // More important nodes have less repulsion (stay more central)
+            const importance = normalizedWeights[node.id()];
+            return 500000 * (1.5 - (importance * 0.8)); // Scale from 0.7 to 1.5 times base value
+          },
+          edgeElasticity: edge => {
+            // Stronger connections (higher weight) have more elasticity
+            return 180 * (edge.data('weight') / 50 + 0.5); // Scale from 0.5 to 2.5 times base value
+          },
+          
+          // Specialized positioning optimization
+          nestingFactor: 5,
+          numIter: 3000, // More iterations for better convergence
+          initialTemp: 150,
+          coolingFactor: 0.97, // Slower cooling for better equilibrium
+          minTemp: 0.5, // Lower minimum temperature
+          
+          // Prevent excessive movement after stabilization
+          animate: true,
+          animationDuration: 1500,
+          animationEasing: 'ease-out',
+          
+          // Stop animation after layout is done
+          stop: function() {
+            // Add additional positions fine-tuning here if needed
+            // For example, ensure central nodes are really central
+            const centerX = cy.width() / 2;
+            const centerY = cy.height() / 2;
+            
+            // Optional: Move the highest importance nodes slightly more to center
+            cy.nodes().forEach(node => {
+              const importance = normalizedWeights[node.id()] || 0;
+              if (importance > 0.8) { // For the most important nodes
+                const position = node.position();
+                const dx = centerX - position.x;
+                const dy = centerY - position.y;
+                
+                // Move 10-20% more toward center based on importance
+                const moveRatio = 0.1 + (importance - 0.8) * 0.25; // 0.1 to 0.2
+                
+                node.animate({
+                  position: {
+                    x: position.x + dx * moveRatio,
+                    y: position.y + dy * moveRatio
+                  },
+                  duration: 500,
+                  easing: 'ease-out'
+                });
+              }
+            });
+          }
+        }).run();
+      }
     }
   }, [elements]);
   
