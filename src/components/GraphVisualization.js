@@ -1,7 +1,22 @@
 import React, { useEffect, useRef } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import { calculateNodeImportance, getNormalizedWeights } from '../utils/layoutUtils';
+import { calculateEnhancedImportance, createOptimizedLayout } from '../utils/AdvancedLayout';
 import './GraphVisualization.css';
+
+// Register cytoscape-fcose extension if needed
+// You'll need to add this package to your dependencies
+import fcose from 'cytoscape-fcose';
+import cytoscape from 'cytoscape';
+
+// Check if the extension is already registered
+if (!cytoscape.prototype.hasRegisteredExtension('fcose')) {
+  try {
+    cytoscape.use(fcose);
+  } catch (e) {
+    console.warn("Couldn't register fcose layout:", e);
+  }
+}
 
 const GraphVisualization = ({ 
   elements, 
@@ -21,82 +36,92 @@ const GraphVisualization = ({
       
       // Apply smart layout only if we have nodes
       if (cy.nodes().length > 0) {
-        // Calculate importance for each node
-        const importanceScores = calculateNodeImportance(cy);
-        const normalizedWeights = getNormalizedWeights(importanceScores);
-        
-        // Apply layout with smart positioning
-        cy.layout({
-          name: 'cose',
-          // Core layout parameters
-          idealEdgeLength: edge => {
-            // Shorter distances for stronger connections
-            return 150 - (edge.data('weight') * 1.2);
-          },
-          nodeOverlap: 25,
-          refresh: 20,
-          fit: true,
-          padding: 40,
-          randomize: false,
+        try {
+          // Use enhanced importance calculation
+          const importanceScores = calculateEnhancedImportance(cy);
           
-          // Gravity effect - central force pulling nodes inward
-          gravity: 80,
-          gravityRangeCompound: 1.2,
-          gravityCompound: 1.0,
+          // Create and run optimized layout
+          const layout = createOptimizedLayout(cy, importanceScores);
+          layout.run();
+        } catch (e) {
+          console.warn("Error applying optimized layout, falling back to standard layout:", e);
           
-          // Forces controlling node positioning
-          nodeRepulsion: node => {
-            // More important nodes have less repulsion (stay more central)
-            const importance = normalizedWeights[node.id()];
-            return 500000 * (1.5 - (importance * 0.8)); // Scale from 0.7 to 1.5 times base value
-          },
-          edgeElasticity: edge => {
-            // Stronger connections (higher weight) have more elasticity
-            return 180 * (edge.data('weight') / 50 + 0.5); // Scale from 0.5 to 2.5 times base value
-          },
+          // Fallback to basic layout
+          const importanceScores = calculateNodeImportance(cy);
+          const normalizedWeights = getNormalizedWeights(importanceScores);
           
-          // Specialized positioning optimization
-          nestingFactor: 5,
-          numIter: 3000, // More iterations for better convergence
-          initialTemp: 150,
-          coolingFactor: 0.97, // Slower cooling for better equilibrium
-          minTemp: 0.5, // Lower minimum temperature
-          
-          // Prevent excessive movement after stabilization
-          animate: true,
-          animationDuration: 1500,
-          animationEasing: 'ease-out',
-          
-          // Stop animation after layout is done
-          stop: function() {
-            // Add additional positions fine-tuning here if needed
-            // For example, ensure central nodes are really central
-            const centerX = cy.width() / 2;
-            const centerY = cy.height() / 2;
+          cy.layout({
+            name: 'cose',
+            // Core layout parameters
+            idealEdgeLength: edge => {
+              // Shorter distances for stronger connections
+              return 150 - (edge.data('weight') * 1.2);
+            },
+            nodeOverlap: 25,
+            refresh: 20,
+            fit: true,
+            padding: 40,
+            randomize: false,
             
-            // Optional: Move the highest importance nodes slightly more to center
-            cy.nodes().forEach(node => {
-              const importance = normalizedWeights[node.id()] || 0;
-              if (importance > 0.8) { // For the most important nodes
-                const position = node.position();
-                const dx = centerX - position.x;
-                const dy = centerY - position.y;
-                
-                // Move 10-20% more toward center based on importance
-                const moveRatio = 0.1 + (importance - 0.8) * 0.25; // 0.1 to 0.2
-                
-                node.animate({
-                  position: {
-                    x: position.x + dx * moveRatio,
-                    y: position.y + dy * moveRatio
-                  },
-                  duration: 500,
-                  easing: 'ease-out'
-                });
-              }
-            });
-          }
-        }).run();
+            // Gravity effect - central force pulling nodes inward
+            gravity: 80,
+            gravityRangeCompound: 1.2,
+            gravityCompound: 1.0,
+            
+            // Forces controlling node positioning
+            nodeRepulsion: node => {
+              // More important nodes have less repulsion (stay more central)
+              const importance = normalizedWeights[node.id()];
+              return 500000 * (1.5 - (importance * 0.8)); // Scale from 0.7 to 1.5 times base value
+            },
+            edgeElasticity: edge => {
+              // Stronger connections (higher weight) have more elasticity
+              return 180 * (edge.data('weight') / 50 + 0.5); // Scale from 0.5 to 2.5 times base value
+            },
+            
+            // Specialized positioning optimization
+            nestingFactor: 5,
+            numIter: 3000, // More iterations for better convergence
+            initialTemp: 150,
+            coolingFactor: 0.97, // Slower cooling for better equilibrium
+            minTemp: 0.5, // Lower minimum temperature
+            
+            // Prevent excessive movement after stabilization
+            animate: true,
+            animationDuration: 1500,
+            animationEasing: 'ease-out',
+            
+            // Stop animation after layout is done
+            stop: function() {
+              // Add additional positions fine-tuning here if needed
+              // For example, ensure central nodes are really central
+              const centerX = cy.width() / 2;
+              const centerY = cy.height() / 2;
+              
+              // Optional: Move the highest importance nodes slightly more to center
+              cy.nodes().forEach(node => {
+                const importance = normalizedWeights[node.id()] || 0;
+                if (importance > 0.8) { // For the most important nodes
+                  const position = node.position();
+                  const dx = centerX - position.x;
+                  const dy = centerY - position.y;
+                  
+                  // Move 10-20% more toward center based on importance
+                  const moveRatio = 0.1 + (importance - 0.8) * 0.25; // 0.1 to 0.2
+                  
+                  node.animate({
+                    position: {
+                      x: position.x + dx * moveRatio,
+                      y: position.y + dy * moveRatio
+                    },
+                    duration: 500,
+                    easing: 'ease-out'
+                  });
+                }
+              });
+            }
+          }).run();
+        }
       }
     }
   }, [elements]);
@@ -245,21 +270,80 @@ const GraphVisualization = ({
               }
             },
             {
+              // Base edge style that applies to ALL edges regardless of selection
               selector: 'edge',
               style: {
-                // Enhanced weight visualization with wider range and min width
-                'width': 'mapData(weight, 1, 99, 2, 12)',
-                'line-color': 'mapData(weight, 1, 99, #555555, #eeeeee)',
+                // Dramatically enhanced weight visualization 
+                'width': function(edge) {
+                  // More dramatic thickness variation
+                  const weight = edge.data('weight');
+                  // Thinner minimum, much thicker maximum
+                  const minWidth = 1;
+                  const maxWidth = 20;
+                  
+                  // Use cubic scaling for extreme differentiation
+                  const normalizedWeight = (weight - 1) / 98; // 0-1 range
+                  const scaledWeight = Math.pow(normalizedWeight, 2); // Quadratic growth
+                  return minWidth + scaledWeight * (maxWidth - minWidth);
+                },
+                'line-color': function(edge) {
+                  // Clear color progression with dramatic blue gradient
+                  const weight = edge.data('weight');
+                  
+                  // Get a color along gradient from dark blue to bright cyan
+                  // Map weights 1-99 to hues from 220 to 180
+                  const hue = 220 - ((weight - 1) / 98) * 40; 
+                  
+                  // Increase saturation and brightness with weight
+                  const saturation = 70 + ((weight - 1) / 98) * 30; // 70-100%
+                  const lightness = 25 + ((weight - 1) / 98) * 50;  // 25-75%
+                  
+                  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                },
                 'curve-style': 'bezier',
-                'opacity': 0.8,
+                'opacity': 0.8, // Default opacity
                 'label': 'data(weight)',  // Show weight as label
-                'font-size': 10,
+                'font-size': function(edge) {
+                  // Make labels on stronger edges more prominent
+                  const weight = edge.data('weight');
+                  // Progressive size increase
+                  if (weight < 25) return 9;
+                  if (weight < 50) return 10;
+                  if (weight < 75) return 11;
+                  return 12;
+                },
                 'color': '#ffffff',
                 'text-outline-width': 1,
                 'text-outline-color': '#000000',
                 'text-background-opacity': 0.5,
-                'text-background-color': '#333333',
-                'text-background-padding': 2
+                'text-background-color': function(edge) {
+                  // Match background to edge color but darker
+                  const weight = edge.data('weight');
+                  const hue = 220 - ((weight - 1) / 98) * 40;
+                  return `hsla(${hue}, 70%, 20%, 0.8)`;
+                },
+                'text-background-padding': 2,
+                'text-rotation': 'autorotate', // Align text with edges
+                'arrow-scale': 0, // No arrows for undirected graph
+                'text-margin-y': -5 // Position text above line
+              }
+            },
+            // Add special style for strongest edges
+            {
+              selector: 'edge[weight >= 80]',
+              style: {
+                'shadow-blur': 10,
+                'shadow-color': function(edge) {
+                  const weight = edge.data('weight');
+                  const hue = 220 - ((weight - 1) / 98) * 40;
+                  const saturation = 70 + ((weight - 1) / 98) * 30;
+                  const lightness = 45;
+                  return `hsla(${hue}, ${saturation}%, ${lightness}%, 0.7)`;
+                },
+                'shadow-opacity': function(edge) {
+                  const weight = edge.data('weight');
+                  return (weight - 80) / 20 * 0.8; // 0-0.8 range based on weight 80-99
+                }
               }
             },
             // Style for selected node
@@ -276,35 +360,54 @@ const GraphVisualization = ({
                 'font-size': 16
               }
             },
-            // First-degree connections (direct)
+            // First-degree connections (direct) - preserve weight-based styling
             {
               selector: '.connected-1',
               style: {
                 'background-color': '#78e08f',
-                'line-color': '#78e08f',
-                'opacity': 1,
                 'z-index': 9,
-                'font-size': 14
+                'font-size': 14,
+                'opacity': 1
               }
             },
-            // Second-degree connections
+            // Second-degree connections - preserve weight-based styling
             {
               selector: '.connected-2',
               style: {
                 'background-color': '#38ada9',
-                'line-color': '#38ada9',
                 'opacity': 0.7,
                 'z-index': 8
               }
             },
-            // Third-degree connections
+            // Third-degree connections - preserve weight-based styling
             {
               selector: '.connected-3',
               style: {
                 'background-color': '#3c6382',
-                'line-color': '#3c6382',
                 'opacity': 0.4,
                 'z-index': 7
+              }
+            },
+            // Style for edges in selected state - use edge-specific selectors
+            {
+              selector: 'edge.connected-1',
+              style: {
+                'line-color': '#78e08f',
+                'opacity': 1
+              }
+            },
+            {
+              selector: 'edge.connected-2',
+              style: {
+                'line-color': '#38ada9',
+                'opacity': 0.7
+              }
+            },
+            {
+              selector: 'edge.connected-3',
+              style: {
+                'line-color': '#3c6382',
+                'opacity': 0.4
               }
             }
           ]}
@@ -364,7 +467,7 @@ const GraphVisualization = ({
           }}
           className="zoom-button"
         >
-          Reset
+          ↻
         </button>
       </div>
     </div>
