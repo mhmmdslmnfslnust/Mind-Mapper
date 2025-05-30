@@ -79,6 +79,32 @@ The visualization uses an intelligent layout algorithm that:
    - Stronger connections (higher weight) have shorter edge lengths
    - Less connected "leaf" nodes move to the periphery
 
+### Advanced Graph Layout
+
+The visualization uses a sophisticated layout algorithm that:
+
+1. **Minimizes Edge Crossings** for improved readability:
+   - Analyzes the graph structure to detect potential crossings
+   - Uses a tiered approach to position nodes in concentric rings
+   - Applies post-processing adjustments to further reduce visual clutter
+
+2. **Enhanced Node Importance Calculation**:
+   - Uses degree centrality (number of connections)
+   - Considers edge weights (connection strength)
+   - Incorporates betweenness centrality (how important a node is as a bridge)
+   - Creates a composite score that determines node positioning
+
+3. **Visual Hierarchy**:
+   - Places the most important nodes (high scores) near the center
+   - Organizes less-connected nodes in outer rings
+   - Uses edge length to visually represent connection strength
+
+4. **Weight Visualization**:
+   - Edge thickness scales with weight using non-linear scaling
+   - Color gradient from dark blue (weak) to bright cyan (strong)
+   - Special glow effect for strongest connections (80+)
+   - Font size increases with connection strength
+
 ### Cascading Highlighting
 
 When selecting a node:
