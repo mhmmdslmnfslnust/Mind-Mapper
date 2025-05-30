@@ -8,7 +8,9 @@ A visual idea-mapping tool that allows you to create and visualize connections b
 
 - **Custom Syntax Parsing**: Define nodes and connections using a simple syntax
 - **Interactive Visualization**: Force-directed graph visualization of your ideas
-- **Node Highlighting**: Select any node to highlight its connections
+- **Smart Layout**: Automatically positions important nodes more centrally
+- **Cascading Highlighting**: When selecting a node, see connections up to 3 degrees away with decreasing intensity
+- **Enhanced Weight Visualization**: Edge thickness and color intensity reflect connection strength
 - **Dark Theme**: Easy on the eyes for long brainstorming sessions
 - **Save & Load**: Persist your mind maps as JSON files
 
@@ -57,7 +59,42 @@ Example:
 
 - **Click on nodes** to highlight their connections
 - **Click and drag** to move nodes around
+- **Scroll/pinch** to zoom in and out
+- **Click and drag** empty space to pan the view
+- **Double-click** on empty space to reset the view
+- **Use buttons** in the top-left corner for zooming in, out, and resetting
 - **Click on background** to deselect
+
+### Smart Layout Algorithm
+
+The visualization uses an intelligent layout algorithm that:
+
+1. **Calculates Node Importance** based on:
+   - Number of connections (degree centrality)
+   - Total weight of all connections
+   - A composite importance score combining these factors
+
+2. **Positions Nodes Strategically**:
+   - More important/connected nodes appear more centrally
+   - Stronger connections (higher weight) have shorter edge lengths
+   - Less connected "leaf" nodes move to the periphery
+
+### Cascading Highlighting
+
+When selecting a node:
+- The selected node is highlighted in orange
+- Direct connections (1st degree) are highlighted in bright green
+- 2nd-degree connections (connections of connections) appear in teal with reduced opacity
+- 3rd-degree connections appear in blue with even lower opacity
+
+This creates a visual "ripple effect" showing the node's sphere of influence within the graph.
+
+### Enhanced Weight Visualization
+
+Connection weights are visually represented through multiple cues:
+- Edge thickness scales with connection weight
+- Edge color intensity corresponds to weight (stronger = brighter)
+- Weight values are displayed directly on edges 
 
 ### Saving and Loading
 
