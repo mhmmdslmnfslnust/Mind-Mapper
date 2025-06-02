@@ -11,12 +11,9 @@ import fcose from 'cytoscape-fcose';
 
 // Register the fcose layout extension
 try {
-  // The correct way to check if an extension is registered
-  if (!cytoscape.extensions || !cytoscape.extensions.layout || !cytoscape.extensions.layout.fcose) {
-    cytoscape.use(fcose);
-  }
+  cytoscape.use(fcose);
 } catch (e) {
-  console.warn("Couldn't register fcose layout:", e);
+  console.warn("Note: fcose registration issue - the layout may fallback to default:", e.message);
 }
 
 const GraphVisualization = ({ 
