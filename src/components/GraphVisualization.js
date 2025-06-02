@@ -6,16 +6,17 @@ import './GraphVisualization.css';
 
 // Register cytoscape-fcose extension if needed
 // You'll need to add this package to your dependencies
-import fcose from 'cytoscape-fcose';
 import cytoscape from 'cytoscape';
+import fcose from 'cytoscape-fcose';
 
-// Check if the extension is already registered
-if (!cytoscape.prototype.hasRegisteredExtension('fcose')) {
-  try {
+// Register the fcose layout extension
+try {
+  // The correct way to check if an extension is registered
+  if (!cytoscape.extensions || !cytoscape.extensions.layout || !cytoscape.extensions.layout.fcose) {
     cytoscape.use(fcose);
-  } catch (e) {
-    console.warn("Couldn't register fcose layout:", e);
   }
+} catch (e) {
+  console.warn("Couldn't register fcose layout:", e);
 }
 
 const GraphVisualization = ({ 
