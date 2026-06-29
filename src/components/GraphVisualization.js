@@ -9,13 +9,11 @@ import './GraphVisualization.css';
 import fcose from 'cytoscape-fcose';
 import cytoscape from 'cytoscape';
 
-// Check if the extension is already registered
-if (!cytoscape.prototype.hasRegisteredExtension('fcose')) {
-  try {
-    cytoscape.use(fcose);
-  } catch (e) {
-    console.warn("Couldn't register fcose layout:", e);
-  }
+// Register the extension once at module load time.
+try {
+  cytoscape.use(fcose);
+} catch (e) {
+  console.warn("Couldn't register fcose layout:", e);
 }
 
 const GraphVisualization = ({ 
